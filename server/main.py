@@ -7,6 +7,7 @@ from operator import itemgetter
 
 app = FastAPI()
 rank = []
+articles = []
 
 # CORSを回避するために追加（今回の肝）
 app.add_middleware(
@@ -24,12 +25,25 @@ with open("rank.json", "r") as f:
     rank.append(rankjson["hard"])
     rank.append(rankjson["normal"])
 
+with open("article.json", "r") as f:
+    articlesjson = json.load(f)
+    articles.append(articlesjson["master"])
+    articles.append(articlesjson["hard"])
+    articles.append(articlesjson["normal"])
+
 print("Load Successfully")
 
 @app.get("/wikirunner/{difficult}")
 def root(difficult: int, kyit_cache_allowed: str = Header("yes")):
     if kyit_cache_allowed == "yes" and difficult <= 2 and difficult >=0:
         return rank[difficult]
+    else:
+        return "fail: Use cache. or wrong difficultly"
+    
+@app.get("/wikirunner/getarticle/{difficult}")
+def article(difficult: int, kyit_cache_allowed: str = Header("yes")):
+    if kyit_cache_allowed == "yes" and difficult <= 2 and difficult >=0:
+        return articles[difficult]
     else:
         return "fail: Use cache. or wrong difficultly"
     
@@ -48,7 +62,7 @@ def backup():
     for a in range(3):
         max_ren = 100
         num = len(rank[a])
-        print(num)
+
         if num > max_ren:
             del rank[a][max_ren - num:]
 
@@ -66,6 +80,6 @@ def skd_process():
     # スケジューラのインスタンスを作成する
     scheduler = BackgroundScheduler()
     # スケジューラーにジョブを追加する
-    scheduler.add_job(backup, "interval", seconds=30)
+    scheduler.add_job(backup, "cron", second="0,30")
     # スケジューラを開始する
     scheduler.start()
